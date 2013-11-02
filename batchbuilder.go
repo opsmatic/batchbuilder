@@ -1,6 +1,10 @@
 // This is a simple helper to make building batched prepared queries less
 // ridiculous. Initially build for CQL, I'm pretty sure it'll work for most
 // SQL-like languages
+//
+// Any time a query constructor takes an interface{}, you can pass a func()
+// (interface{}, error) instead. Batch.Join will execute this at batch
+// construction time and use the return value, or return the error
 package batchbuilder
 
 import (
@@ -13,8 +17,8 @@ type PreparedQuery struct {
 	Args  []interface{}
 }
 
-func NewPreparedQuery(query string, vars ...interface{}) PreparedQuery {
-	return PreparedQuery{query, vars}
+func NewPreparedQuery(query string, args ...interface{}) PreparedQuery {
+	return PreparedQuery{query, args}
 }
 
 // NewInsert creates an INSERT query
@@ -56,12 +60,22 @@ func (self *Batch) AddQuery(query PreparedQuery) {
 // NOTE: if you're using a client/db combo that supports passing in lists of
 // queries (e.g github.com/tux21b/gocql with cassandra >= 2.0), you can build
 // up batch objects for that client by just accessing Batch.Queries directly.
-func (self *Batch) Join(separator, startCmd, endCmd string) (string, []interface{}) {
+func (self *Batch) Join(separator, startCmd, endCmd string) (string, []interface{}, error) {
 	var queries []string
 	var allArgs []interface{}
 	for _, preparedQuery := range self.Queries {
 		queries = append(queries, preparedQuery.Query)
-		allArgs = append(allArgs, preparedQuery.Args...)
+		for _, arg := range preparedQuery.Args {
+			if f, ok := arg.(func() (interface{}, error)); ok {
+				if argValue, err := f(); err != nil {
+					return "", nil, fmt.Errorf("Unable to generate query argument at runtime: %s", err)
+				} else {
+					allArgs = append(allArgs, argValue)
+				}
+			} else {
+				allArgs = append(allArgs, arg)
+			}
+		}
 	}
 	if startCmd != "" {
 		queries = append([]string{startCmd}, queries...)
@@ -69,5 +83,5 @@ func (self *Batch) Join(separator, startCmd, endCmd string) (string, []interface
 	if endCmd != "" {
 		queries = append(queries, endCmd)
 	}
-	return strings.Join(queries, separator), allArgs
+	return strings.Join(queries, separator), allArgs, nil
 }
