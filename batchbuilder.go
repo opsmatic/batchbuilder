@@ -33,14 +33,30 @@ func NewInsert(table string, values map[string]interface{}) PreparedQuery {
 	return NewPreparedQuery(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, strings.Join(cols, ", "), strings.Join(qs, ", ")), vals...)
 }
 
+// NewUpdate creates an UPDATE query
+func NewUpdate(table string, updates map[string]interface{}, wheres map[string]interface{}) PreparedQuery {
+	var cols []string
+	var upds []string
+	var vals []interface{}
+	for upd, value := range updates {
+		upds = append(upds, fmt.Sprintf("%s = ?", upd))
+		vals = append(vals, value)
+	}
+	for col, where := range wheres {
+		cols = append(cols, fmt.Sprintf("%s = ?", col))
+		vals = append(vals, where)
+	}
+	return NewPreparedQuery(fmt.Sprintf("UPDATE %s SET %s WHERE %s", table, strings.Join(upds, ", "), strings.Join(cols, " AND ")), vals...)
+}
+
 // NewDelete builds a delete query using ANDs. Disjunctive DELETEs are out of
 // scope, for now anyway
-func NewDelete(table string, values map[string]interface{}) PreparedQuery {
+func NewDelete(table string, wheres map[string]interface{}) PreparedQuery {
 	var cols []string
 	var vals []interface{}
-	for col, value := range values {
+	for col, where := range wheres {
 		cols = append(cols, fmt.Sprintf("%s = ?", col))
-		vals = append(vals, value)
+		vals = append(vals, where)
 	}
 	return NewPreparedQuery(fmt.Sprintf("DELETE FROM %s WHERE %s", table, strings.Join(cols, " AND ")), vals...)
 }
