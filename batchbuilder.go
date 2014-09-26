@@ -33,6 +33,18 @@ func NewInsert(table string, values map[string]interface{}) PreparedQuery {
 	return NewPreparedQuery(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, strings.Join(cols, ", "), strings.Join(qs, ", ")), vals...)
 }
 
+// NewInsertWithTTL creates an INSERT query with expiration date
+func NewInsertWithTTL(table string, values map[string]interface{}, ttl int) PreparedQuery {
+	var cols, qs []string
+	var vals []interface{}
+	for col, value := range values {
+		cols = append(cols, col)
+		qs = append(qs, "?")
+		vals = append(vals, value)
+	}
+	return NewPreparedQuery(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) USING TTL %d", table, strings.Join(cols, ", "), strings.Join(qs, ", "), ttl), vals...)
+}
+
 // NewUpdate creates an UPDATE query
 func NewUpdate(table string, updates map[string]interface{}, wheres map[string]interface{}) PreparedQuery {
 	var cols []string
