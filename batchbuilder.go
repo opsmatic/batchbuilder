@@ -17,6 +17,12 @@ type PreparedQuery struct {
 	Args  []interface{}
 }
 
+// Note this method applied to Inserts and Updates only
+func (PreparedQuery) WithTTL(seconds int) PreparedQuery {
+	self.query = fmt.Sprintf("%s USING TTL %d", self.query, seconds)
+	return self
+}
+
 func NewPreparedQuery(query string, args ...interface{}) PreparedQuery {
 	return PreparedQuery{query, args}
 }
