@@ -18,8 +18,8 @@ type PreparedQuery struct {
 }
 
 // Note this method applied to Inserts and Updates only
-func (PreparedQuery) WithTTL(seconds int) PreparedQuery {
-	self.query = fmt.Sprintf("%s USING TTL %d", self.query, seconds)
+func (self PreparedQuery) WithTTL(seconds int) PreparedQuery {
+	self.Query = fmt.Sprintf("%s USING TTL %d", self.Query, seconds)
 	return self
 }
 
