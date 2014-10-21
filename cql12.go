@@ -6,12 +6,17 @@ import (
 	"github.com/gocql/gocql"
 )
 
-type Cql12Batch struct {
+type CqlBatch interface {
 	Batch
+	Apply(session *gocql.Session) (err error)
+}
+
+type Cql12Batch struct {
+	BasicBatch
 	timestamp *int64 // pointer so it can be nil since 0 is a valid ts
 }
 
-func NewCql12Batch() *Cql12Batch {
+func NewCql12Batch() CqlBatch {
 	return &Cql12Batch{}
 }
 

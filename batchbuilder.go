@@ -67,12 +67,17 @@ func NewDelete(table string, wheres map[string]interface{}) PreparedQuery {
 	return NewPreparedQuery(fmt.Sprintf("DELETE FROM %s WHERE %s", table, strings.Join(cols, " AND ")), vals...)
 }
 
-type Batch struct {
+type Batch interface {
+	AddQuery(query PreparedQuery)
+	Join(separator, startCmd, endCmd string) (string, []interface{}, error)
+}
+
+type BasicBatch struct {
 	Queries []PreparedQuery
 }
 
 // AddQuery adds a query/args pair
-func (self *Batch) AddQuery(query PreparedQuery) {
+func (self *BasicBatch) AddQuery(query PreparedQuery) {
 	self.Queries = append(self.Queries, query)
 }
 
@@ -82,7 +87,7 @@ func (self *Batch) AddQuery(query PreparedQuery) {
 // NOTE: if you're using a client/db combo that supports passing in lists of
 // queries (e.g github.com/tux21b/gocql with cassandra >= 2.0), you can build
 // up batch objects for that client by just accessing Batch.Queries directly.
-func (self *Batch) Join(separator, startCmd, endCmd string) (string, []interface{}, error) {
+func (self *BasicBatch) Join(separator, startCmd, endCmd string) (string, []interface{}, error) {
 	var queries []string
 	var allArgs []interface{}
 	for _, preparedQuery := range self.Queries {
