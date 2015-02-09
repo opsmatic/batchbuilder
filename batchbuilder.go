@@ -68,17 +68,45 @@ func NewDelete(table string, wheres map[string]interface{}) PreparedQuery {
 }
 
 type Batch interface {
-	AddQuery(query PreparedQuery)
+	AddQuery(query PreparedQuery) error
 	Join(separator, startCmd, endCmd string) (string, []interface{}, error)
 }
 
+type ErrTooManyArgs struct {
+	adding  int
+	current int
+	max     int
+}
+
+func (self ErrTooManyArgs) Error() string {
+	return fmt.Sprintf("can't add query with %d args, batch already has %d (max %d)", self.adding, self.current, self.max)
+}
+
+const DEFAULT_MAX_ARGS = 65536
+
 type BasicBatch struct {
-	Queries []PreparedQuery
+	Queries   []PreparedQuery
+	MaxArgs   int
+	totalArgs int
+}
+
+func NewBasicBatch() *BasicBatch {
+	return &BasicBatch{
+		make([]PreparedQuery, 0),
+		DEFAULT_MAX_ARGS,
+		0,
+	}
 }
 
 // AddQuery adds a query/args pair
-func (self *BasicBatch) AddQuery(query PreparedQuery) {
+func (self *BasicBatch) AddQuery(query PreparedQuery) (err error) {
+	if self.totalArgs+len(query.Args) > self.MaxArgs {
+		err = ErrTooManyArgs{len(query.Args), self.totalArgs, self.MaxArgs}
+		return
+	}
 	self.Queries = append(self.Queries, query)
+	self.totalArgs += len(query.Args)
+	return
 }
 
 // Join builds up a big string query and also returns all the arguments as one
