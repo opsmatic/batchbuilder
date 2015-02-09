@@ -100,7 +100,7 @@ func NewBasicBatch() *BasicBatch {
 
 // AddQuery adds a query/args pair
 func (self *BasicBatch) AddQuery(query PreparedQuery) (err error) {
-	if self.totalArgs+len(query.Args) > self.MaxArgs {
+	if self.MaxArgs > 0 && self.totalArgs+len(query.Args) > self.MaxArgs {
 		err = ErrTooManyArgs{len(query.Args), self.totalArgs, self.MaxArgs}
 		return
 	}
